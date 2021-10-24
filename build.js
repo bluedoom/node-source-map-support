@@ -4,6 +4,7 @@ var fs = require('fs');
 var path = require('path');
 var querystring = require('querystring');
 var child_process = require('child_process');
+var HttpsProxyAgent = require('https-proxy-agent');
 
 var browserify = path.resolve(path.join('node_modules', '.bin', 'browserify'));
 var webpack = path.resolve(path.join('node_modules', '.bin', 'webpack'));
@@ -31,6 +32,7 @@ run(browserify + ' .temp.js', function(error, stdout) {
     stdout.replace(/\bbyte\b/g, 'bite').replace(new RegExp(__dirname + '/', 'g'), '').replace(/@license/g, 'license'),
     'return sourceMapSupport});',
   ].join('\n');
+  fs.writeFileSync('browser-source-map-support.js', code);
 
   // Use the online Google Closure Compiler service for minification
   var body = Buffer.from(querystring.stringify({
@@ -41,6 +43,7 @@ run(browserify + ' .temp.js', function(error, stdout) {
   }));
   console.log('making request to google closure compiler');
   var https = require('https');
+  
   var request = https.request({
     method: 'POST',
     host: 'closure-compiler.appspot.com',
@@ -49,6 +52,7 @@ run(browserify + ' .temp.js', function(error, stdout) {
       'content-length': body.length,
       'content-type': 'application/x-www-form-urlencoded'
     },
+    agent: new HttpsProxyAgent(process.env.http_proxy || "http://127.0.0.1:10809"),
   });
   request.end(body);
   request.on('response', function(response) {
@@ -73,6 +77,7 @@ run(browserify + ' .temp.js', function(error, stdout) {
     });
   });
 });
+
 
 // Build the AMD test
 run(coffee + ' --map --compile amd-test/script.coffee', function(error) {

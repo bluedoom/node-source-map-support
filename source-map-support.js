@@ -318,7 +318,7 @@ function CallSiteToString() {
       }
     }
   }
-
+  fileLocation = `at <a path="${fileLocation}>${fileLocation}</a>`
   var line = "";
   var functionName = this.getFunctionName();
   var addSuffix = true;
@@ -395,7 +395,7 @@ function wrapCallSite(frame, state) {
     }
 
     var position = mapSourcePosition({
-      source: source,
+      source: /^at /.test(source)? source.slice(3): source,
       line: line,
       column: column
     });
