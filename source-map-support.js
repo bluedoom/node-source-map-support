@@ -318,7 +318,7 @@ function CallSiteToString() {
       }
     }
   }
-  fileLocation = `at <a path="${fileLocation}>${fileLocation}</a>`
+  fileLocation = `<a path="${fileLocation}>${fileLocation}</a>`
   var line = "";
   var functionName = this.getFunctionName();
   var addSuffix = true;
