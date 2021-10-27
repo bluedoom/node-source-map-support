@@ -133,7 +133,7 @@ retrieveFileHandlers.push(function(path) {
 // in case we are in the browser (i.e. directories may start with "http://" or "file:///")
 function supportRelativeURL(file, url) {
   if (!file) return url;
-  var dir = path.dirname(file);
+  var dir = path.dirname(file.replace('\\','/'));
   var match = /^\w+:\/\/[^\/]*/.exec(dir);
   var protocol = match ? match[0] : '';
   var startPath = dir.slice(protocol.length);
@@ -318,7 +318,6 @@ function CallSiteToString() {
       }
     }
   }
-  fileLocation = `<a path="${fileLocation}>${fileLocation}</a>`
   var line = "";
   var functionName = this.getFunctionName();
   var addSuffix = true;
