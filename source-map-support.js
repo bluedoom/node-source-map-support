@@ -46,7 +46,7 @@ var reSourceMap = /^data:application\/json[^,]+base64,/;
 // Priority list of retrieve handlers
 var retrieveFileHandlers = [];
 var retrieveMapHandlers = [];
-
+var postprocessSourceFilePath;
 function isInBrowser() {
   if (environment === "browser")
     return true;
@@ -133,14 +133,14 @@ retrieveFileHandlers.push(function(path) {
 // in case we are in the browser (i.e. directories may start with "http://" or "file:///")
 function supportRelativeURL(file, url) {
   if (!file) return url;
-  var dir = path.dirname(file.replace('\\','/'));
+  var dir = path.dirname(file.replace(/\\/g,'/'));
   var match = /^\w+:\/\/[^\/]*/.exec(dir);
   var protocol = match ? match[0] : '';
   var startPath = dir.slice(protocol.length);
   if (protocol && /^\/\w\:/.test(startPath)) {
     // handle file:///C:/ paths
     protocol += '/';
-    return protocol + path.resolve(dir.slice(protocol.length), url).replace(/\\/g, '/');
+    return protocol + path.resolve(dir.slice(protocol.length), url);
   }
   return protocol + path.resolve(dir.slice(protocol.length), url);
 }
@@ -249,12 +249,13 @@ function mapSourcePosition(position) {
     // better to give a precise location in the compiled file than a vague
     // location in the original file.
     if (originalPosition.source !== null) {
-      originalPosition.source = supportRelativeURL(
-        sourceMap.url, originalPosition.source);
+      originalPosition.source = DoPostprocessSourceFilePath(supportRelativeURL(
+        sourceMap.url, originalPosition.source));
       return originalPosition;
     }
   }
-
+  
+  position.source = DoPostprocessSourceFilePath(position.source)
   return position;
 }
 
@@ -427,6 +428,14 @@ function wrapCallSite(frame, state) {
   return frame;
 }
 
+function DoPostprocessSourceFilePath(opath)
+{
+  if (postprocessSourceFilePath)
+    return postprocessSourceFilePath(opath);
+  else
+    return opath;
+}
+
 // This function is part of the V8 stack trace API, for more info see:
 // https://v8.dev/docs/stack-trace-api
 function prepareStackTrace(error, stack) {
@@ -553,6 +562,9 @@ exports.install = function(options) {
 
     retrieveMapHandlers.unshift(options.retrieveSourceMap);
   }
+
+  // Allow postprocess source map path without line\column number
+  postprocessSourceFilePath = options.postprocessSourceFilePath;
 
   // Support runtime transpilers that include inline source maps
   if (options.hookRequire && !isInBrowser()) {
