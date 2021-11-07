@@ -46,7 +46,7 @@ var reSourceMap = /^data:application\/json[^,]+base64,/;
 // Priority list of retrieve handlers
 var retrieveFileHandlers = [];
 var retrieveMapHandlers = [];
-var postprocessSourceFilePath;
+var postprocessLocation;
 function isInBrowser() {
   if (environment === "browser")
     return true;
@@ -249,13 +249,11 @@ function mapSourcePosition(position) {
     // better to give a precise location in the compiled file than a vague
     // location in the original file.
     if (originalPosition.source !== null) {
-      originalPosition.source = DoPostprocessSourceFilePath(supportRelativeURL(
-        sourceMap.url, originalPosition.source));
+      originalPosition.source = supportRelativeURL(
+        sourceMap.url, originalPosition.source);
       return originalPosition;
     }
   }
-  
-  position.source = DoPostprocessSourceFilePath(position.source)
   return position;
 }
 
@@ -319,6 +317,7 @@ function CallSiteToString() {
       }
     }
   }
+  fileLocation = DoPostprocessSourceFileLocation(fileLocation);
   var line = "";
   var functionName = this.getFunctionName();
   var addSuffix = true;
@@ -428,10 +427,10 @@ function wrapCallSite(frame, state) {
   return frame;
 }
 
-function DoPostprocessSourceFilePath(opath)
+function DoPostprocessSourceFileLocation(opath)
 {
-  if (postprocessSourceFilePath)
-    return postprocessSourceFilePath(opath);
+  if (postprocessLocation)
+    return postprocessLocation(opath);
   else
     return opath;
 }
@@ -564,7 +563,7 @@ exports.install = function(options) {
   }
 
   // Allow postprocess source map path without line\column number
-  postprocessSourceFilePath = options.postprocessSourceFilePath;
+  postprocessLocation = options.postprocessLocation;
 
   // Support runtime transpilers that include inline source maps
   if (options.hookRequire && !isInBrowser()) {
