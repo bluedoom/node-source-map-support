@@ -292,7 +292,7 @@ function CallSiteToString() {
   var fileName;
   var fileLocation = "";
   if (this.isNative()) {
-    fileLocation = "native";
+    fileLocation = DoPostprocessSourceFileLocation("native");
   } else {
     fileName = this.getScriptNameOrSourceURL();
     if (!fileName && this.isEval()) {
@@ -300,24 +300,15 @@ function CallSiteToString() {
       fileLocation += ", ";  // Expecting source position to follow.
     }
 
-    if (fileName) {
-      fileLocation += fileName;
-    } else {
+    if (!fileName) {
       // Source code does not originate from a file and is not native, but we
       // can still get the source position inside the source string, e.g. in
       // an eval string.
-      fileLocation += "<anonymous>";
+      fileName = "<anonymous>";
     }
-    var lineNumber = this.getLineNumber();
-    if (lineNumber != null) {
-      fileLocation += ":" + lineNumber;
-      var columnNumber = this.getColumnNumber();
-      if (columnNumber) {
-        fileLocation += ":" + columnNumber;
-      }
-    }
+
+    fileLocation += DoPostprocessSourceFileLocation(fileName,this.getLineNumber(), this.getColumnNumber());
   }
-  fileLocation = DoPostprocessSourceFileLocation(fileLocation);
   var line = "";
   var functionName = this.getFunctionName();
   var addSuffix = true;
@@ -427,12 +418,20 @@ function wrapCallSite(frame, state) {
   return frame;
 }
 
-function DoPostprocessSourceFileLocation(opath)
-{
+function DoPostprocessSourceFileLocation(opath, line, column) {
   if (postprocessLocation)
-    return postprocessLocation(opath);
+    return postprocessLocation(opath, line, column);
   else
-    return opath;
+  {
+    let fileLocation = opath;
+    if (line != null) {
+      fileLocation += ":" + line;
+      if (column) {
+        fileLocation += ":" + column;
+      }
+    }
+    return fileLocation;
+  }
 }
 
 // This function is part of the V8 stack trace API, for more info see:
